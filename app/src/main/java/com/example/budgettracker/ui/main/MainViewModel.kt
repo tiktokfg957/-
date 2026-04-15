@@ -4,6 +4,7 @@ import androidx.lifecycle.LiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.asLiveData
+import androidx.lifecycle.liveData
 import androidx.lifecycle.viewModelScope
 import com.example.budgettracker.data.model.Transaction
 import com.example.budgettracker.data.repository.BudgetRepository
@@ -13,8 +14,10 @@ import kotlinx.coroutines.launch
 class MainViewModel(private val repository: BudgetRepository) : ViewModel() {
 
     val transactions = repository.getAllTransactions().asLiveData()
-    private val _totalExpense = repository.getTotalExpenseSince(DateUtils.getStartOfMonth()).asLiveData()
-    val totalExpense: LiveData<Double> = _totalExpense
+
+    val totalExpense: LiveData<Double> = liveData {
+        emit(repository.getTotalExpenseSince(DateUtils.getStartOfMonth()))
+    }
 
     suspend fun deleteTransaction(transaction: Transaction) {
         repository.deleteTransaction(transaction)
