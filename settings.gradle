@@ -10,7 +10,7 @@ dependencyResolutionManagement {
     repositories {
         google()
         mavenCentral()
-        maven { url 'https://jitpack.io' } // обязательно для MPAndroidChart
+        maven { url 'https://jitpack.io' }
     }
 }
 rootProject.name = "BudgetTrackerSimple"
