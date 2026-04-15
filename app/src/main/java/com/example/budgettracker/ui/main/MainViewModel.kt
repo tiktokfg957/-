@@ -1,6 +1,7 @@
 package com.example.budgettracker.ui.main
 
 import androidx.lifecycle.LiveData
+import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.asLiveData
@@ -14,11 +15,23 @@ class MainViewModel(private val repository: BudgetRepository) : ViewModel() {
 
     val transactions = repository.getAllTransactions().asLiveData()
 
-    private val _totalExpense = repository.getTotalExpenseSince(DateUtils.getStartOfMonth()).asLiveData()
+    private val _totalExpense = MutableLiveData<Double>()
     val totalExpense: LiveData<Double> = _totalExpense
+
+    init {
+        loadTotalExpense()
+    }
+
+    private fun loadTotalExpense() {
+        viewModelScope.launch {
+            val expense = repository.getTotalExpenseSince(DateUtils.getStartOfMonth())
+            _totalExpense.postValue(expense)
+        }
+    }
 
     suspend fun deleteTransaction(transaction: Transaction) {
         repository.deleteTransaction(transaction)
+        loadTotalExpense() // обновим после удаления
     }
 
     class MainViewModelFactory(private val repository: BudgetRepository) : ViewModelProvider.Factory {
