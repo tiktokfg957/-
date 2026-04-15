@@ -9,7 +9,7 @@
         android:id="@+id/etBudget"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:hint="Бюджет на месяц (₽)"
-        android:inputType="numberDecimal" />
+        android:hint="Сумма бюджета"
+        android:inputType="number" />
 
 </LinearLayout>
