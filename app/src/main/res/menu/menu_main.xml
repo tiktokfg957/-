@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+
+    <item
+        android:id="@+id/action_settings"
+        android:title="Бюджет"
+        android:icon="@android:drawable/ic_menu_edit"
+        app:showAsAction="ifRoom" />
+
+    <item
+        android:id="@+id/action_stats"
+        android:title="Статистика"
+        android:icon="@android:drawable/ic_menu_view"
+        app:showAsAction="ifRoom" />
+
+    <item
+        android:id="@+id/action_filter_week"
+        android:title="Неделя"
+        app:showAsAction="never" />
+
+    <item
+        android:id="@+id/action_filter_month"
+        android:title="Месяц"
+        app:showAsAction="never" />
+
+    <item
+        android:id="@+id/action_filter_year"
+        android:title="Год"
+        app:showAsAction="never" />
+
+    <item
+        android:id="@+id/action_filter_all"
+        android:title="Всё время"
+        app:showAsAction="never" />
+
+</menu>
