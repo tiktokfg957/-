@@ -2,7 +2,6 @@ package com.example.budgettracker.data.model
 
 import androidx.room.Entity
 import androidx.room.PrimaryKey
-import java.util.Date
 
 @Entity(tableName = "transactions")
 data class Transaction(
@@ -11,6 +10,6 @@ data class Transaction(
     val amount: Double,
     val shop: String,
     val category: String,
-    val date: Long, // timestamp
+    val date: Long,
     val note: String? = null
 )
