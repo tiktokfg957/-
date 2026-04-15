@@ -1,37 +1,19 @@
 <?xml version="1.0" encoding="utf-8"?>
 <menu xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto">
-
     <item
-        android:id="@+id/action_settings"
+        android:id="@+id/action_budget"
         android:title="Бюджет"
         android:icon="@android:drawable/ic_menu_edit"
-        app:showAsAction="ifRoom" />
-
-    <item
-        android:id="@+id/action_stats"
-        android:title="Статистика"
-        android:icon="@android:drawable/ic_menu_view"
-        app:showAsAction="ifRoom" />
-
-    <item
-        android:id="@+id/action_filter_week"
-        android:title="Неделя"
         app:showAsAction="never" />
-
     <item
-        android:id="@+id/action_filter_month"
-        android:title="Месяц"
+        android:id="@+id/action_export"
+        android:title="Экспорт CSV"
+        android:icon="@android:drawable/ic_menu_save"
         app:showAsAction="never" />
-
     <item
-        android:id="@+id/action_filter_year"
-        android:title="Год"
+        android:id="@+id/action_theme"
+        android:title="Тёмная тема"
+        android:icon="@android:drawable/ic_menu_preferences"
         app:showAsAction="never" />
-
-    <item
-        android:id="@+id/action_filter_all"
-        android:title="Всё время"
-        app:showAsAction="never" />
-
 </menu>
