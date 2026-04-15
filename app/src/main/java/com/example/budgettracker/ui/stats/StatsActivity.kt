@@ -4,7 +4,9 @@ import android.graphics.Color
 import android.os.Bundle
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
+import com.example.budgettracker.R
 import com.example.budgettracker.databinding.ActivityStatsBinding
+import com.example.budgettracker.data.model.ShopStat
 import com.github.mikephil.charting.data.PieData
 import com.github.mikephil.charting.data.PieDataSet
 import com.github.mikephil.charting.data.PieEntry
@@ -32,7 +34,7 @@ class StatsActivity : AppCompatActivity() {
         }
     }
 
-    private fun setupPieChart(stats: List<com.example.budgettracker.data.database.AppDatabase.ShopStat>) {
+    private fun setupPieChart(stats: List<ShopStat>) {
         val entries = stats.map { PieEntry(it.total.toFloat(), it.shop) }
         if (entries.isEmpty()) return
         val dataSet = PieDataSet(entries, getString(R.string.shop_stats))
@@ -46,7 +48,7 @@ class StatsActivity : AppCompatActivity() {
         binding.pieChart.invalidate()
     }
 
-    private fun updateShopList(stats: List<com.example.budgettracker.data.database.AppDatabase.ShopStat>) {
+    private fun updateShopList(stats: List<ShopStat>) {
         val builder = StringBuilder()
         stats.forEach {
             builder.append("${it.shop}: ${String.format("%.2f", it.total)} ₽\n")
