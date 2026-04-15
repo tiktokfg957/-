@@ -1,17 +1,29 @@
 package com.example.budgettracker.ui.stats
 
 import androidx.lifecycle.LiveData
+import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
-import androidx.lifecycle.liveData
-import com.example.budgettracker.data.database.ShopStat
+import androidx.lifecycle.viewModelScope
+import com.example.budgettracker.data.model.ShopStat
 import com.example.budgettracker.data.repository.BudgetRepository
 import com.example.budgettracker.utils.DateUtils
+import kotlinx.coroutines.launch
 
 class StatsViewModel(private val repository: BudgetRepository) : ViewModel() {
 
-    val shopStats: LiveData<List<ShopStat>> = liveData {
-        emit(repository.getShopStats(DateUtils.getStartOfMonth()))
+    private val _shopStats = MutableLiveData<List<ShopStat>>()
+    val shopStats: LiveData<List<ShopStat>> = _shopStats
+
+    init {
+        loadShopStats()
+    }
+
+    private fun loadShopStats() {
+        viewModelScope.launch {
+            val stats = repository.getShopStats(DateUtils.getStartOfMonth())
+            _shopStats.postValue(stats)
+        }
     }
 
     class StatsViewModelFactory(private val repository: BudgetRepository) : ViewModelProvider.Factory {
