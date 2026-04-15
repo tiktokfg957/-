@@ -7,6 +7,7 @@ object DateUtils {
     private val format = SimpleDateFormat("dd.MM.yyyy", Locale.getDefault())
 
     fun timestampToString(timestamp: Long): String = format.format(Date(timestamp))
+
     fun getStartOfMonth(): Long {
         val calendar = Calendar.getInstance()
         calendar.set(Calendar.DAY_OF_MONTH, 1)
