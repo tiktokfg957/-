@@ -1,7 +1,6 @@
 package com.example.budgettracker.data.database
 
 import androidx.room.*
-import com.example.budgettracker.data.model.ShopStat
 import com.example.budgettracker.data.model.Transaction
 import kotlinx.coroutines.flow.Flow
 
@@ -24,4 +23,6 @@ interface TransactionDao {
 
     @Query("SELECT shop, SUM(amount) as total FROM transactions WHERE date >= :startDate GROUP BY shop ORDER BY total DESC")
     suspend fun getShopStats(startDate: Long): List<ShopStat>
+
+    data class ShopStat(val shop: String, val total: Double)
 }
