@@ -1,10 +1,9 @@
 package com.example.budgettracker.data.database
 
 import androidx.room.*
+import com.example.budgettracker.data.model.ShopStat
 import com.example.budgettracker.data.model.Transaction
 import kotlinx.coroutines.flow.Flow
-
-data class ShopStat(val shop: String, val total: Double)
 
 @Dao
 interface TransactionDao {
