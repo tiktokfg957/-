@@ -5,38 +5,12 @@
     android:orientation="vertical"
     android:padding="16dp">
 
-    <EditText
-        android:id="@+id/etAmount"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:hint="Сумма"
-        android:inputType="numberDecimal" />
-
-    <EditText
-        android:id="@+id/etShop"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:hint="Магазин / источник" />
-
-    <EditText
-        android:id="@+id/etCategory"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:hint="Категория" />
-
-    <EditText
-        android:id="@+id/etDate"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:hint="Дата (дд.мм.гггг)"
-        android:inputType="date" />
-
     <RadioGroup
         android:id="@+id/rgType"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
-        android:layout_marginTop="8dp">
+        android:layout_marginBottom="8dp">
 
         <RadioButton
             android:id="@+id/rbExpense"
@@ -53,5 +27,31 @@
             android:layout_weight="1"
             android:text="Доход" />
     </RadioGroup>
+
+    <EditText
+        android:id="@+id/etAmount"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="Сумма"
+        android:inputType="numberDecimal" />
+
+    <EditText
+        android:id="@+id/etShop"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="Магазин / Источник" />
+
+    <EditText
+        android:id="@+id/etCategory"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="Категория" />
+
+    <EditText
+        android:id="@+id/etDate"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="Дата (дд.мм.гггг)"
+        android:inputType="date" />
 
 </LinearLayout>
