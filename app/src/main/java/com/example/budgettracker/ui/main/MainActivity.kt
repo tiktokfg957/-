@@ -7,10 +7,10 @@ import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
+import com.example.budgettracker.R
 import com.example.budgettracker.databinding.ActivityMainBinding
 import com.example.budgettracker.ui.add.AddActivity
 import com.example.budgettracker.ui.stats.StatsActivity
-import com.example.budgettracker.utils.DateUtils
 import kotlinx.coroutines.launch
 
 class MainActivity : AppCompatActivity() {
@@ -51,7 +51,7 @@ class MainActivity : AppCompatActivity() {
         }
         viewModel.totalExpense.observe(this) { expense ->
             binding.tvTotalExpense.text = String.format("%.2f ₽", expense)
-            val budget = 30000.0 // временно фиксированный бюджет
+            val budget = 30000.0
             val balance = budget - expense
             binding.tvBalance.text = String.format("%.2f ₽", balance)
             if (balance < 0) {
