@@ -1,7 +1,7 @@
 package com.example.budgettracker.data.repository
 
 import com.example.budgettracker.data.database.AppDatabase
-import com.example.budgettracker.data.database.ShopStat
+import com.example.budgettracker.data.model.ShopStat
 import com.example.budgettracker.data.model.Transaction
 import kotlinx.coroutines.flow.Flow
 
