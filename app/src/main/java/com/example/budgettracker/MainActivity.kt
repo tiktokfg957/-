@@ -1,7 +1,12 @@
 package com.example.budgettracker
 
+import android.content.SharedPreferences
 import android.os.Bundle
+import android.view.LayoutInflater
+import android.view.View
+import android.view.ViewGroup
 import android.widget.*
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
@@ -13,10 +18,12 @@ import java.util.*
 
 class MainActivity : AppCompatActivity() {
 
+    private lateinit var prefs: SharedPreferences
     private lateinit var recyclerView: RecyclerView
     private lateinit var adapter: TransactionAdapter
     private lateinit var tvBalance: TextView
-    private lateinit var prefs: SharedPreferences
+    private lateinit var tvTotalExpense: TextView
+    private lateinit var tvAdvice: TextView
 
     private val transactions = mutableListOf<Transaction>()
     private var totalExpense = 0.0
@@ -30,8 +37,8 @@ class MainActivity : AppCompatActivity() {
 
         recyclerView = findViewById(R.id.rvTransactions)
         tvBalance = findViewById(R.id.tvBalance)
-        val tvTotalExpense = findViewById<TextView>(R.id.tvTotalExpense)
-        val tvAdvice = findViewById<TextView>(R.id.tvAdvice)
+        tvTotalExpense = findViewById(R.id.tvTotalExpense)
+        tvAdvice = findViewById(R.id.tvAdvice)
         val btnAdd = findViewById<FloatingActionButton>(R.id.btnAdd)
 
         adapter = TransactionAdapter(transactions) { position ->
@@ -41,7 +48,7 @@ class MainActivity : AppCompatActivity() {
         recyclerView.adapter = adapter
 
         loadData()
-        updateUI(tvTotalExpense, tvAdvice)
+        updateUI()
 
         btnAdd.setOnClickListener {
             showAddDialog()
@@ -57,7 +64,7 @@ class MainActivity : AppCompatActivity() {
 
         etDate.setText(SimpleDateFormat("dd.MM.yyyy", Locale.getDefault()).format(Date()))
 
-        val dialog = android.app.AlertDialog.Builder(this)
+        AlertDialog.Builder(this)
             .setTitle("Новая трата")
             .setView(dialogView)
             .setPositiveButton("Добавить") { _, _ ->
@@ -72,8 +79,7 @@ class MainActivity : AppCompatActivity() {
                 }
             }
             .setNegativeButton("Отмена", null)
-            .create()
-        dialog.show()
+            .show()
     }
 
     private fun addTransaction(amount: Double, shop: String, category: String, date: String) {
@@ -82,7 +88,7 @@ class MainActivity : AppCompatActivity() {
         totalExpense += amount
         saveData()
         adapter.notifyItemInserted(0)
-        updateUI(findViewById(R.id.tvTotalExpense), findViewById(R.id.tvAdvice))
+        updateUI()
     }
 
     private fun removeTransaction(position: Int) {
@@ -91,13 +97,13 @@ class MainActivity : AppCompatActivity() {
         transactions.removeAt(position)
         saveData()
         adapter.notifyItemRemoved(position)
-        updateUI(findViewById(R.id.tvTotalExpense), findViewById(R.id.tvAdvice))
+        updateUI()
     }
 
-    private fun updateUI(tvTotalExpense: TextView, tvAdvice: TextView) {
+    private fun updateUI() {
         val balance = budget - totalExpense
         tvBalance.text = String.format("%.2f ₽", balance)
-        tvTotalExpense.text = String.format("%.2f ₽", totalExpense)
+        tvTotalExpense.text = String.format("Расходы: %.2f ₽", totalExpense)
 
         val advice = when {
             balance < 0 -> "⚠️ Вы превысили бюджет на ${String.format("%.2f", -balance)} ₽"
@@ -122,7 +128,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun loadData() {
-        val jsonStr = prefs.getString("transactions", "[]")
+        val jsonStr = prefs.getString("transactions", "[]") ?: "[]"
         val jsonArray = JSONArray(jsonStr)
         transactions.clear()
         for (i in 0 until jsonArray.length()) {
