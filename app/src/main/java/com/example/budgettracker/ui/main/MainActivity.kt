@@ -2,20 +2,28 @@ package com.example.budgettracker.ui.main
 
 import android.content.Intent
 import android.os.Bundle
+import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.RecyclerView
 import com.example.budgettracker.R
-import com.example.budgettracker.databinding.ActivityMainBinding
 import com.example.budgettracker.ui.add.AddActivity
 import com.example.budgettracker.ui.stats.StatsActivity
+import com.google.android.material.button.MaterialButton
 import kotlinx.coroutines.launch
 
 class MainActivity : AppCompatActivity() {
 
-    private lateinit var binding: ActivityMainBinding
+    private lateinit var rvTransactions: RecyclerView
+    private lateinit var tvBalance: TextView
+    private lateinit var tvTotalExpense: TextView
+    private lateinit var tvAdvice: TextView
+    private lateinit var btnAdd: MaterialButton
+    private lateinit var btnStats: MaterialButton
+
     private val viewModel: MainViewModel by viewModels {
         MainViewModel.MainViewModelFactory((application as com.example.budgettracker.BudgetApplication).repository)
     }
@@ -23,11 +31,17 @@ class MainActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        binding = ActivityMainBinding.inflate(layoutInflater)
-        setContentView(binding.root)
+        setContentView(R.layout.activity_main)
 
-        setSupportActionBar(binding.toolbar)
+        setSupportActionBar(findViewById(R.id.toolbar))
         supportActionBar?.title = getString(R.string.app_name)
+
+        rvTransactions = findViewById(R.id.rvTransactions)
+        tvBalance = findViewById(R.id.tvBalance)
+        tvTotalExpense = findViewById(R.id.tvTotalExpense)
+        tvAdvice = findViewById(R.id.tvAdvice)
+        btnAdd = findViewById(R.id.btnAdd)
+        btnStats = findViewById(R.id.btnStats)
 
         setupRecyclerView()
         observeData()
@@ -41,8 +55,8 @@ class MainActivity : AppCompatActivity() {
                 Toast.makeText(this@MainActivity, "Удалено", Toast.LENGTH_SHORT).show()
             }
         }
-        binding.rvTransactions.layoutManager = LinearLayoutManager(this)
-        binding.rvTransactions.adapter = adapter
+        rvTransactions.layoutManager = LinearLayoutManager(this)
+        rvTransactions.adapter = adapter
     }
 
     private fun observeData() {
@@ -50,25 +64,23 @@ class MainActivity : AppCompatActivity() {
             adapter.submitList(transactions)
         }
         viewModel.totalExpense.observe(this) { expense ->
-            binding.tvTotalExpense.text = String.format("%.2f ₽", expense)
+            tvTotalExpense.text = String.format("%.2f ₽", expense)
             val budget = 30000.0
             val balance = budget - expense
-            binding.tvBalance.text = String.format("%.2f ₽", balance)
-            if (balance < 0) {
-                binding.tvAdvice.text = "Вы превысили бюджет! Пора экономить."
-            } else if (balance < 5000) {
-                binding.tvAdvice.text = "Осталось меньше 5000 ₽. Будьте внимательны."
-            } else {
-                binding.tvAdvice.text = "Хорошо! Вы укладываетесь в бюджет."
+            tvBalance.text = String.format("%.2f ₽", balance)
+            tvAdvice.text = when {
+                balance < 0 -> "Вы превысили бюджет! Пора экономить."
+                balance < 5000 -> "Осталось меньше 5000 ₽. Будьте внимательны."
+                else -> "Хорошо! Вы укладываетесь в бюджет."
             }
         }
     }
 
     private fun setupListeners() {
-        binding.btnAdd.setOnClickListener {
+        btnAdd.setOnClickListener {
             startActivity(Intent(this, AddActivity::class.java))
         }
-        binding.btnStats.setOnClickListener {
+        btnStats.setOnClickListener {
             startActivity(Intent(this, StatsActivity::class.java))
         }
     }
