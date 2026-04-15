@@ -1,32 +1,46 @@
 package com.example.budgettracker.ui.add
 
 import android.os.Bundle
+import android.widget.Button
+import android.widget.EditText
 import android.widget.Toast
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
-import com.example.budgettracker.databinding.ActivityAddBinding
+import com.example.budgettracker.R
 import java.text.SimpleDateFormat
 import java.util.*
 
 class AddActivity : AppCompatActivity() {
 
-    private lateinit var binding: ActivityAddBinding
+    private lateinit var etAmount: EditText
+    private lateinit var etShop: EditText
+    private lateinit var etCategory: EditText
+    private lateinit var etDate: EditText
+    private lateinit var btnSave: Button
+    private lateinit var btnCancel: Button
+
     private val viewModel: AddViewModel by viewModels {
         AddViewModel.AddViewModelFactory((application as com.example.budgettracker.BudgetApplication).repository)
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        binding = ActivityAddBinding.inflate(layoutInflater)
-        setContentView(binding.root)
+        setContentView(R.layout.activity_add)
 
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
         supportActionBar?.title = getString(R.string.add)
 
+        etAmount = findViewById(R.id.etAmount)
+        etShop = findViewById(R.id.etShop)
+        etCategory = findViewById(R.id.etCategory)
+        etDate = findViewById(R.id.etDate)
+        btnSave = findViewById(R.id.btnSave)
+        btnCancel = findViewById(R.id.btnCancel)
+
         setupDatePicker()
 
-        binding.btnSave.setOnClickListener {
-            val amountStr = binding.etAmount.text.toString()
+        btnSave.setOnClickListener {
+            val amountStr = etAmount.text.toString()
             if (amountStr.isEmpty()) {
                 Toast.makeText(this, "Введите сумму", Toast.LENGTH_SHORT).show()
                 return@setOnClickListener
@@ -36,17 +50,17 @@ class AddActivity : AppCompatActivity() {
                 Toast.makeText(this, "Некорректная сумма", Toast.LENGTH_SHORT).show()
                 return@setOnClickListener
             }
-            val shop = binding.etShop.text.toString().trim()
+            val shop = etShop.text.toString().trim()
             if (shop.isEmpty()) {
                 Toast.makeText(this, "Укажите магазин", Toast.LENGTH_SHORT).show()
                 return@setOnClickListener
             }
-            val category = binding.etCategory.text.toString().trim()
+            val category = etCategory.text.toString().trim()
             if (category.isEmpty()) {
                 Toast.makeText(this, "Укажите категорию", Toast.LENGTH_SHORT).show()
                 return@setOnClickListener
             }
-            val dateStr = binding.etDate.text.toString()
+            val dateStr = etDate.text.toString()
             val date = try {
                 SimpleDateFormat("dd.MM.yyyy", Locale.getDefault()).parse(dateStr) ?: Date()
             } catch (e: Exception) { Date() }
@@ -57,15 +71,15 @@ class AddActivity : AppCompatActivity() {
             finish()
         }
 
-        binding.btnCancel.setOnClickListener {
+        btnCancel.setOnClickListener {
             finish()
         }
     }
 
     private fun setupDatePicker() {
         val currentDate = SimpleDateFormat("dd.MM.yyyy", Locale.getDefault()).format(Date())
-        binding.etDate.setText(currentDate)
-        binding.etDate.setOnClickListener {
+        etDate.setText(currentDate)
+        etDate.setOnClickListener {
             showDatePickerDialog()
         }
     }
@@ -76,7 +90,7 @@ class AddActivity : AppCompatActivity() {
             this,
             { _, year, month, dayOfMonth ->
                 val selectedDate = String.format("%02d.%02d.%04d", dayOfMonth, month + 1, year)
-                binding.etDate.setText(selectedDate)
+                etDate.setText(selectedDate)
             },
             calendar.get(Calendar.YEAR),
             calendar.get(Calendar.MONTH),
