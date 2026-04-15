@@ -5,15 +5,15 @@ import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
-import com.example.budgettracker.data.model.ShopStat
+import com.example.budgettracker.data.database.AppDatabase
 import com.example.budgettracker.data.repository.BudgetRepository
 import com.example.budgettracker.utils.DateUtils
 import kotlinx.coroutines.launch
 
 class StatsViewModel(private val repository: BudgetRepository) : ViewModel() {
 
-    private val _shopStats = MutableLiveData<List<ShopStat>>()
-    val shopStats: LiveData<List<ShopStat>> = _shopStats
+    private val _shopStats = MutableLiveData<List<AppDatabase.ShopStat>>()
+    val shopStats: LiveData<List<AppDatabase.ShopStat>> = _shopStats
 
     init {
         loadShopStats()
