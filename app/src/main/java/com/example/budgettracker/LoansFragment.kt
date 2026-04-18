@@ -99,15 +99,14 @@ class LoansFragment : Fragment() {
                 if (amountStr.isNotEmpty()) {
                     val amount = amountStr.toDoubleOrNull()
                     if (amount != null && amount > 0 && amount <= loan.remaining) {
-                        // Списываем деньги из бюджета (обновляем SharedPreferences)
+                        // 1. Обновляем бюджет и транзакции
                         val budgetPrefs = requireActivity().getSharedPreferences("budget_data", Context.MODE_PRIVATE)
-                        var budget = budgetPrefs.getFloat("budget", 30000f).toDouble()
                         val totalExpense = budgetPrefs.getFloat("totalExpense", 0f).toDouble()
                         val totalIncome = budgetPrefs.getFloat("totalIncome", 0f).toDouble()
 
-                        // Добавляем расход в транзакции (как трату)
-                        val transactionsPrefs = budgetPrefs.getString("transactions", "[]") ?: "[]"
-                        val jsonArray = JSONArray(transactionsPrefs)
+                        // Добавляем расход в транзакции
+                        val transactionsStr = budgetPrefs.getString("transactions", "[]") ?: "[]"
+                        val jsonArray = JSONArray(transactionsStr)
                         val newTransaction = JSONObject().apply {
                             put("amount", amount)
                             put("shop", "Платеж по кредиту: ${loan.name}")
@@ -119,12 +118,15 @@ class LoansFragment : Fragment() {
                         budgetPrefs.edit().putString("transactions", jsonArray.toString()).apply()
                         budgetPrefs.edit().putFloat("totalExpense", (totalExpense + amount).toFloat()).apply()
 
-                        // Уменьшаем остаток кредита
+                        // 2. Уменьшаем остаток кредита
                         loan.remaining -= amount
                         saveLoans()
                         adapter.notifyDataSetChanged()
 
-                        // Обновляем бюджет (перезагрузка фрагмента транзакций)
+                        // 3. Обновляем фрагмент транзакций
+                        val fragment = parentFragmentManager.fragments.firstOrNull { it is TransactionsFragment }
+                        (fragment as? TransactionsFragment)?.refreshData()
+
                         Toast.makeText(requireContext(), "Платеж зачислен. Остаток: ${loan.remaining}", Toast.LENGTH_SHORT).show()
                     } else {
                         Toast.makeText(requireContext(), "Некорректная сумма", Toast.LENGTH_SHORT).show()
