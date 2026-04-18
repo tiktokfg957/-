@@ -1,5 +1,6 @@
 package com.example.budgettracker
 
+import android.content.Context
 import android.content.SharedPreferences
 import android.os.Bundle
 import android.view.LayoutInflater
@@ -104,7 +105,6 @@ class TransactionsFragment : Fragment() {
         val etShop = dialogView.findViewById<EditText>(R.id.etShop)
         val etCategory = dialogView.findViewById<EditText>(R.id.etCategory)
         val etDate = dialogView.findViewById<EditText>(R.id.etDate)
-        val radioGroupType = dialogView.findViewById<RadioGroup>(R.id.rgType)
         val rbIncome = dialogView.findViewById<RadioButton>(R.id.rbIncome)
 
         etDate.setText(SimpleDateFormat("dd.MM.yyyy", Locale.getDefault()).format(Date()))
