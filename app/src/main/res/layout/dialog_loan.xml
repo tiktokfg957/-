@@ -24,7 +24,23 @@
         android:id="@+id/etMonthlyPayment"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:hint="Ежемесячный платёж"
+        android:hint="Ежемесячный платёж (сумма)"
+        android:inputType="numberDecimal"
+        android:layout_marginBottom="12dp" />
+
+    <EditText
+        android:id="@+id/etPaymentDay"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="День платежа (число от 1 до 31)"
+        android:inputType="number"
+        android:layout_marginBottom="12dp" />
+
+    <EditText
+        android:id="@+id/etMinPayment"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="Минимальный платёж (если отличается от ежемесячного)"
         android:inputType="numberDecimal" />
 
 </LinearLayout>
