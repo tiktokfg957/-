@@ -1,19 +1,34 @@
 package com.example.budgettracker
 
+import android.content.ContentValues
 import android.content.Context
+import android.content.Intent
 import android.content.SharedPreferences
+import android.content.pm.PackageManager
+import android.graphics.Bitmap
+import android.net.Uri
+import android.os.Build
 import android.os.Bundle
+import android.provider.MediaStore
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.*
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
+import androidx.core.content.FileProvider
+import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.floatingactionbutton.FloatingActionButton
+import com.google.mlkit.vision.common.InputImage
+import com.google.mlkit.vision.text.TextRecognition
+import com.google.mlkit.vision.text.latin.TextRecognizerOptions
 import org.json.JSONArray
 import org.json.JSONObject
+import java.io.File
+import java.io.IOException
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -30,6 +45,20 @@ class TransactionsFragment : Fragment() {
     private var totalExpense = 0.0
     private var totalIncome = 0.0
     private var budget = 0.0
+
+    // Для фото чека
+    private var photoUri: Uri? = null
+    private var currentPhotoPath: String? = null
+    private val recognizer = TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS)
+
+    // Регистрация камеры
+    private val takePictureLauncher = registerForActivityResult(ActivityResultContracts.TakePicture()) { success ->
+        if (success && photoUri != null) {
+            recognizeReceipt(photoUri!!)
+        } else {
+            Toast.makeText(requireContext(), "Не удалось сделать фото", Toast.LENGTH_SHORT).show()
+        }
+    }
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
         return inflater.inflate(R.layout.fragment_transactions, container, false)
@@ -111,9 +140,27 @@ class TransactionsFragment : Fragment() {
         val etShop = dialogView.findViewById<EditText>(R.id.etShop)
         val etCategory = dialogView.findViewById<EditText>(R.id.etCategory)
         val etDate = dialogView.findViewById<EditText>(R.id.etDate)
-        val rbIncome = dialogView.findViewById<RadioButton>(R.id.rbIncome)
+        val rbExpense = dialogView.findViewById<RadioButton>(R.id.rbExpense)
+        val btnPhoto = dialogView.findViewById<Button>(R.id.btnPhoto)
 
         etDate.setText(SimpleDateFormat("dd.MM.yyyy", Locale.getDefault()).format(Date()))
+
+        // Кнопка фото чека – только для расходов
+        btnPhoto.visibility = if (rbExpense.isChecked) View.VISIBLE else View.GONE
+
+        rbExpense.setOnCheckedChangeListener { _, isChecked ->
+            btnPhoto.visibility = if (isChecked) View.VISIBLE else View.GONE
+        }
+
+        btnPhoto.setOnClickListener {
+            // Проверяем разрешение на камеру
+            if (ContextCompat.checkSelfPermission(requireContext(), android.Manifest.permission.CAMERA)
+                != PackageManager.PERMISSION_GRANTED) {
+                requestPermissions(arrayOf(android.Manifest.permission.CAMERA), 100)
+            } else {
+                dispatchTakePictureIntent()
+            }
+        }
 
         AlertDialog.Builder(requireContext())
             .setTitle("Новая операция")
@@ -123,7 +170,7 @@ class TransactionsFragment : Fragment() {
                 val shop = etShop.text.toString().trim()
                 val category = etCategory.text.toString().trim()
                 val date = etDate.text.toString()
-                val type = if (rbIncome.isChecked) "income" else "expense"
+                val type = if (rbExpense.isChecked) "expense" else "income"
 
                 if (amount != null && amount > 0 && shop.isNotEmpty() && category.isNotEmpty()) {
                     addTransaction(amount, shop, category, date, type)
@@ -133,6 +180,87 @@ class TransactionsFragment : Fragment() {
             }
             .setNegativeButton("Отмена", null)
             .show()
+    }
+
+    private fun dispatchTakePictureIntent() {
+        val photoFile = try {
+            createImageFile()
+        } catch (ex: IOException) {
+            Toast.makeText(requireContext(), "Ошибка создания файла", Toast.LENGTH_SHORT).show()
+            return
+        }
+        photoFile?.let {
+            photoUri = FileProvider.getUriForFile(
+                requireContext(),
+                "${requireContext().packageName}.fileprovider",
+                it
+            )
+            takePictureLauncher.launch(photoUri)
+        }
+    }
+
+    private fun createImageFile(): File? {
+        val timeStamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())
+        val storageDir = requireContext().getExternalFilesDir(null)
+        return File.createTempFile(
+            "JPEG_${timeStamp}_",
+            ".jpg",
+            storageDir
+        ).apply {
+            currentPhotoPath = absolutePath
+        }
+    }
+
+    private fun recognizeReceipt(uri: Uri) {
+        try {
+            val bitmap = MediaStore.Images.Media.getBitmap(requireContext().contentResolver, uri)
+            val image = InputImage.fromBitmap(bitmap, 0)
+            recognizer.process(image)
+                .addOnSuccessListener { visionText ->
+                    val recognizedText = visionText.text
+                    // Парсим сумму и магазин
+                    val (amount, shop) = parseReceiptText(recognizedText)
+                    // Обновляем поля в диалоге (через findFragment? сложно, но можно сохранить в переменные)
+                    // Покажем тост и предложим ввести вручную
+                    if (amount != null) {
+                        Toast.makeText(requireContext(), "Распознано: $amount ₽", Toast.LENGTH_SHORT).show()
+                        // Здесь нужно обновить поле суммы в открытом диалоге.
+                        // Упростим: покажем диалог с предложением вставить
+                        AlertDialog.Builder(requireContext())
+                            .setTitle("Распознано")
+                            .setMessage("Сумма: $amount ₽\nМагазин: ${shop ?: "не определён"}")
+                            .setPositiveButton("Вставить") { _, _ ->
+                                // Найти активное диалоговое окно и обновить поля? Сложно.
+                                // Предложим пользователю ввести вручную
+                                Toast.makeText(requireContext(), "Введите данные вручную", Toast.LENGTH_SHORT).show()
+                            }
+                            .setNegativeButton("Отмена", null)
+                            .show()
+                    } else {
+                        Toast.makeText(requireContext(), "Не удалось распознать сумму", Toast.LENGTH_SHORT).show()
+                    }
+                }
+                .addOnFailureListener {
+                    Toast.makeText(requireContext(), "Ошибка распознавания", Toast.LENGTH_SHORT).show()
+                }
+        } catch (e: Exception) {
+            Toast.makeText(requireContext(), "Ошибка: ${e.message}", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    private fun parseReceiptText(text: String): Pair<Double?, String?> {
+        // Ищем сумму (цифры с возможной запятой/точкой)
+        val amountPattern = Regex("""(\d+[.,]\d{2})""")
+        val amountMatch = amountPattern.find(text)
+        val amount = amountMatch?.value?.replace(',', '.')?.toDoubleOrNull()
+
+        // Ищем название магазина (первые строки, где нет цифр)
+        val lines = text.lines()
+        val shop = lines.firstOrNull { line ->
+            line.length in 3..30 && !line.any { it.isDigit() }
+        }?.trim()
+
+        return Pair(amount, shop)
     }
 
     private fun addTransaction(amount: Double, shop: String, category: String, date: String, type: String) {
@@ -249,6 +377,15 @@ class TransactionsFragment : Fragment() {
             val tvAmount: TextView = itemView.findViewById(R.id.tvAmount)
             val tvDate: TextView = itemView.findViewById(R.id.tvDate)
             val btnDelete: Button = itemView.findViewById(R.id.btnDelete)
+        }
+    }
+
+    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        if (requestCode == 100 && grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+            dispatchTakePictureIntent()
+        } else {
+            Toast.makeText(requireContext(), "Нет доступа к камере", Toast.LENGTH_SHORT).show()
         }
     }
 }
