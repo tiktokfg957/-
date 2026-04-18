@@ -40,7 +40,4 @@ dependencies {
     implementation 'androidx.constraintlayout:constraintlayout:2.1.4'
     implementation 'androidx.recyclerview:recyclerview:1.3.2'
     implementation 'androidx.cardview:cardview:1.0.0'
-
-    // Yandex Mobile Ads SDK (последняя стабильная версия)
-    implementation 'com.yandex.android:mobileads:6.4.0'
 }
