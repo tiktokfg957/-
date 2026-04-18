@@ -9,6 +9,7 @@ import android.graphics.Bitmap
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
+import android.os.Environment
 import android.provider.MediaStore
 import android.view.LayoutInflater
 import android.view.View
@@ -47,14 +48,19 @@ class TransactionsFragment : Fragment() {
     private var budget = 0.0
 
     // Для фото чека
-    private var photoUri: Uri? = null
     private var currentPhotoPath: String? = null
     private val recognizer = TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS)
 
-    // Регистрация камеры
+    // Регистрация для камеры
     private val takePictureLauncher = registerForActivityResult(ActivityResultContracts.TakePicture()) { success ->
-        if (success && photoUri != null) {
-            recognizeReceipt(photoUri!!)
+        if (success && currentPhotoPath != null) {
+            val photoFile = File(currentPhotoPath)
+            val uri = FileProvider.getUriForFile(
+                requireContext(),
+                "${requireContext().packageName}.fileprovider",
+                photoFile
+            )
+            recognizeReceipt(uri)
         } else {
             Toast.makeText(requireContext(), "Не удалось сделать фото", Toast.LENGTH_SHORT).show()
         }
@@ -186,29 +192,28 @@ class TransactionsFragment : Fragment() {
         val photoFile = try {
             createImageFile()
         } catch (ex: IOException) {
-            Toast.makeText(requireContext(), "Ошибка создания файла", Toast.LENGTH_SHORT).show()
+            Toast.makeText(requireContext(), "Ошибка создания файла: ${ex.message}", Toast.LENGTH_SHORT).show()
             return
         }
         photoFile?.let {
-            photoUri = FileProvider.getUriForFile(
+            currentPhotoPath = it.absolutePath
+            val uri = FileProvider.getUriForFile(
                 requireContext(),
                 "${requireContext().packageName}.fileprovider",
                 it
             )
-            takePictureLauncher.launch(photoUri)
+            takePictureLauncher.launch(uri)
         }
     }
 
     private fun createImageFile(): File? {
         val timeStamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())
-        val storageDir = requireContext().getExternalFilesDir(null)
+        val storageDir = requireContext().getExternalFilesDir(Environment.DIRECTORY_PICTURES)
         return File.createTempFile(
             "JPEG_${timeStamp}_",
             ".jpg",
             storageDir
-        ).apply {
-            currentPhotoPath = absolutePath
-        }
+        )
     }
 
     private fun recognizeReceipt(uri: Uri) {
@@ -218,24 +223,10 @@ class TransactionsFragment : Fragment() {
             recognizer.process(image)
                 .addOnSuccessListener { visionText ->
                     val recognizedText = visionText.text
-                    // Парсим сумму и магазин
                     val (amount, shop) = parseReceiptText(recognizedText)
-                    // Обновляем поля в диалоге (через findFragment? сложно, но можно сохранить в переменные)
-                    // Покажем тост и предложим ввести вручную
                     if (amount != null) {
-                        Toast.makeText(requireContext(), "Распознано: $amount ₽", Toast.LENGTH_SHORT).show()
-                        // Здесь нужно обновить поле суммы в открытом диалоге.
-                        // Упростим: покажем диалог с предложением вставить
-                        AlertDialog.Builder(requireContext())
-                            .setTitle("Распознано")
-                            .setMessage("Сумма: $amount ₽\nМагазин: ${shop ?: "не определён"}")
-                            .setPositiveButton("Вставить") { _, _ ->
-                                // Найти активное диалоговое окно и обновить поля? Сложно.
-                                // Предложим пользователю ввести вручную
-                                Toast.makeText(requireContext(), "Введите данные вручную", Toast.LENGTH_SHORT).show()
-                            }
-                            .setNegativeButton("Отмена", null)
-                            .show()
+                        Toast.makeText(requireContext(), "Распознано: $amount ₽\nМагазин: ${shop ?: "не определён"}", Toast.LENGTH_LONG).show()
+                        // Здесь можно было бы автоматически заполнить поля, но для простоты покажем тост
                     } else {
                         Toast.makeText(requireContext(), "Не удалось распознать сумму", Toast.LENGTH_SHORT).show()
                     }
@@ -249,12 +240,10 @@ class TransactionsFragment : Fragment() {
     }
 
     private fun parseReceiptText(text: String): Pair<Double?, String?> {
-        // Ищем сумму (цифры с возможной запятой/точкой)
         val amountPattern = Regex("""(\d+[.,]\d{2})""")
         val amountMatch = amountPattern.find(text)
         val amount = amountMatch?.value?.replace(',', '.')?.toDoubleOrNull()
 
-        // Ищем название магазина (первые строки, где нет цифр)
         val lines = text.lines()
         val shop = lines.firstOrNull { line ->
             line.length in 3..30 && !line.any { it.isDigit() }
