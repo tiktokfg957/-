@@ -67,6 +67,13 @@ class TransactionsFragment : Fragment() {
         }
     }
 
+    // Публичный метод для обновления данных извне
+    fun refreshData() {
+        loadData()
+        updateUI()
+        adapter.notifyDataSetChanged()
+    }
+
     private fun showBudgetDialog() {
         val dialogView = layoutInflater.inflate(R.layout.dialog_budget, null)
         val etBudget = dialogView.findViewById<EditText>(R.id.etBudget)
