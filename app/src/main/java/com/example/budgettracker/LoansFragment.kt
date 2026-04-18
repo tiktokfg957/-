@@ -11,6 +11,7 @@ import androidx.appcompat.app.AlertDialog
 import androidx.fragment.app.Fragment
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import com.example.budgettracker.ReminderHelper
 import org.json.JSONArray
 import org.json.JSONObject
 import java.text.SimpleDateFormat
@@ -56,6 +57,8 @@ class LoansFragment : Fragment() {
         val etTotal = dialogView.findViewById<EditText>(R.id.etLoanTotal)
         val etMonthly = dialogView.findViewById<EditText>(R.id.etMonthlyPayment)
         val etName = dialogView.findViewById<EditText>(R.id.etLoanName)
+        val etPaymentDay = dialogView.findViewById<EditText>(R.id.etPaymentDay)
+        val etMinPayment = dialogView.findViewById<EditText>(R.id.etMinPayment)
 
         AlertDialog.Builder(requireContext())
             .setTitle("Добавить кредит")
@@ -64,13 +67,19 @@ class LoansFragment : Fragment() {
                 val totalStr = etTotal.text.toString()
                 val monthlyStr = etMonthly.text.toString()
                 val name = etName.text.toString().trim()
-                if (totalStr.isNotEmpty() && monthlyStr.isNotEmpty() && name.isNotEmpty()) {
+                val paymentDayStr = etPaymentDay.text.toString().trim()
+                val minPaymentStr = etMinPayment.text.toString().trim()
+                if (totalStr.isNotEmpty() && monthlyStr.isNotEmpty() && name.isNotEmpty() && paymentDayStr.isNotEmpty()) {
                     val total = totalStr.toDoubleOrNull()
                     val monthly = monthlyStr.toDoubleOrNull()
-                    if (total != null && monthly != null && total > 0 && monthly > 0) {
-                        addLoan(name, total, monthly, total)
+                    val paymentDay = paymentDayStr.toIntOrNull()
+                    val minPayment = if (minPaymentStr.isNotEmpty()) minPaymentStr.toDoubleOrNull() else monthly
+                    if (total != null && monthly != null && total > 0 && monthly > 0 && paymentDay != null && paymentDay in 1..31 && minPayment != null) {
+                        addLoan(name, total, monthly, total, paymentDay, minPayment)
+                        // После добавления кредита запускаем напоминания
+                        ReminderHelper.scheduleLoanReminders(requireContext())
                     } else {
-                        Toast.makeText(requireContext(), "Некорректные суммы", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(requireContext(), "Проверьте правильность ввода (день от 1 до 31)", Toast.LENGTH_SHORT).show()
                     }
                 } else {
                     Toast.makeText(requireContext(), "Заполните все поля", Toast.LENGTH_SHORT).show()
@@ -80,11 +89,13 @@ class LoansFragment : Fragment() {
             .show()
     }
 
-    private fun addLoan(name: String, total: Double, monthly: Double, remaining: Double) {
-        val loan = Loan(name, total, monthly, remaining)
+    private fun addLoan(name: String, total: Double, monthly: Double, remaining: Double, paymentDay: Int, minPayment: Double) {
+        val loan = Loan(name, total, monthly, remaining, paymentDay, minPayment)
         loans.add(loan)
         saveLoans()
         adapter.notifyItemInserted(loans.size - 1)
+        // Обновляем напоминания
+        ReminderHelper.scheduleLoanReminders(requireContext())
     }
 
     private fun showPayDialog(loan: Loan) {
@@ -99,12 +110,11 @@ class LoansFragment : Fragment() {
                 if (amountStr.isNotEmpty()) {
                     val amount = amountStr.toDoubleOrNull()
                     if (amount != null && amount > 0 && amount <= loan.remaining) {
-                        // 1. Обновляем бюджет и транзакции
+                        // Обновляем бюджет и транзакции
                         val budgetPrefs = requireActivity().getSharedPreferences("budget_data", Context.MODE_PRIVATE)
                         val totalExpense = budgetPrefs.getFloat("totalExpense", 0f).toDouble()
                         val totalIncome = budgetPrefs.getFloat("totalIncome", 0f).toDouble()
 
-                        // Добавляем расход в транзакции
                         val transactionsStr = budgetPrefs.getString("transactions", "[]") ?: "[]"
                         val jsonArray = JSONArray(transactionsStr)
                         val newTransaction = JSONObject().apply {
@@ -118,12 +128,10 @@ class LoansFragment : Fragment() {
                         budgetPrefs.edit().putString("transactions", jsonArray.toString()).apply()
                         budgetPrefs.edit().putFloat("totalExpense", (totalExpense + amount).toFloat()).apply()
 
-                        // 2. Уменьшаем остаток кредита
                         loan.remaining -= amount
                         saveLoans()
                         adapter.notifyDataSetChanged()
 
-                        // 3. Обновляем фрагмент транзакций
                         val fragment = parentFragmentManager.fragments.firstOrNull { it is TransactionsFragment }
                         (fragment as? TransactionsFragment)?.refreshData()
 
@@ -143,6 +151,8 @@ class LoansFragment : Fragment() {
         loans.remove(loan)
         saveLoans()
         adapter.notifyDataSetChanged()
+        // Обновляем напоминания
+        ReminderHelper.scheduleLoanReminders(requireContext())
     }
 
     private fun saveLoans() {
@@ -153,6 +163,8 @@ class LoansFragment : Fragment() {
             obj.put("total", it.total)
             obj.put("monthly", it.monthly)
             obj.put("remaining", it.remaining)
+            obj.put("paymentDay", it.paymentDay)
+            obj.put("minPayment", it.minPayment)
             jsonArray.put(obj)
         }
         prefs.edit().putString("loans", jsonArray.toString()).apply()
@@ -168,14 +180,23 @@ class LoansFragment : Fragment() {
                 obj.getString("name"),
                 obj.getDouble("total"),
                 obj.getDouble("monthly"),
-                obj.getDouble("remaining")
+                obj.getDouble("remaining"),
+                obj.getInt("paymentDay"),
+                obj.getDouble("minPayment")
             )
             loans.add(loan)
         }
         adapter.notifyDataSetChanged()
     }
 
-    data class Loan(val name: String, val total: Double, val monthly: Double, var remaining: Double)
+    data class Loan(
+        val name: String,
+        val total: Double,
+        val monthly: Double,
+        var remaining: Double,
+        val paymentDay: Int,
+        val minPayment: Double
+    )
 
     inner class LoanAdapter(
         private val items: List<Loan>,
@@ -191,7 +212,7 @@ class LoansFragment : Fragment() {
             val loan = items[position]
             holder.tvName.text = loan.name
             holder.tvTotal.text = "Общая сумма: ${String.format("%.2f", loan.total)} ₽"
-            holder.tvMonthly.text = "Ежемесячный: ${String.format("%.2f", loan.monthly)} ₽"
+            holder.tvMonthly.text = "Ежемесячный: ${String.format("%.2f", loan.monthly)} ₽ | Платёж до ${loan.paymentDay}-го числа"
             holder.tvRemaining.text = "Остаток: ${String.format("%.2f", loan.remaining)} ₽"
             holder.btnPay.setOnClickListener { onAction(loan, "pay") }
             holder.btnDelete.setOnClickListener { onAction(loan, "delete") }
