@@ -62,7 +62,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun loadBannerAd() {
-        val adUnitId = "R-M-19097965-1"  // твой ID
+        val adUnitId = "R-M-19097965-1"
         bannerAdView = BannerAdView(this)
         bannerAdView?.setAdUnitId(adUnitId)
 
