@@ -5,11 +5,27 @@
     android:orientation="vertical"
     android:padding="16dp">
 
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Введите сумму вашего месячного бюджета"
+        android:textSize="16sp"
+        android:layout_marginBottom="16dp" />
+
     <EditText
         android:id="@+id/etBudget"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:hint="Сумма бюджета"
-        android:inputType="number" />
+        android:hint="Например, 50000"
+        android:inputType="numberDecimal"
+        android:digits="0123456789."
+        android:layout_marginBottom="16dp" />
+
+    <Button
+        android:id="@+id/btnSaveBudget"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Сохранить"
+        android:backgroundTint="@color/purple_500" />
 
 </LinearLayout>
