@@ -67,7 +67,6 @@ class TransactionsFragment : Fragment() {
         }
     }
 
-    // Публичный метод для обновления данных извне
     fun refreshData() {
         loadData()
         updateUI()
