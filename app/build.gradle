@@ -44,4 +44,7 @@ dependencies {
 
     // ML Kit Text Recognition
     implementation 'com.google.mlkit:text-recognition:16.0.0'
+
+    // WorkManager для напоминаний
+    implementation 'androidx.work:work-runtime-ktx:2.9.0'
 }
