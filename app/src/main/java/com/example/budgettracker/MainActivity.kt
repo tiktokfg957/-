@@ -11,7 +11,6 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.floatingactionbutton.FloatingActionButton
-import com.yandex.mobile.ads.banner.*
 import org.json.JSONArray
 import org.json.JSONObject
 import java.text.SimpleDateFormat
@@ -25,8 +24,6 @@ class MainActivity : AppCompatActivity() {
     private lateinit var tvBalance: TextView
     private lateinit var tvTotalExpense: TextView
     private lateinit var tvAdvice: TextView
-    private lateinit var adContainer: FrameLayout
-    private var bannerAdView: BannerAdView? = null
 
     private val transactions = mutableListOf<Transaction>()
     private var totalExpense = 0.0
@@ -42,7 +39,6 @@ class MainActivity : AppCompatActivity() {
         tvBalance = findViewById(R.id.tvBalance)
         tvTotalExpense = findViewById(R.id.tvTotalExpense)
         tvAdvice = findViewById(R.id.tvAdvice)
-        adContainer = findViewById(R.id.adContainer)
         val btnAdd = findViewById<FloatingActionButton>(R.id.btnAdd)
 
         adapter = TransactionAdapter(transactions) { position ->
@@ -57,40 +53,6 @@ class MainActivity : AppCompatActivity() {
         btnAdd.setOnClickListener {
             showAddDialog()
         }
-
-        loadBannerAd()
-    }
-
-    private fun loadBannerAd() {
-        val adUnitId = "R-M-19097965-1"
-        bannerAdView = BannerAdView(this)
-        bannerAdView?.setAdUnitId(adUnitId)
-
-        val adSize = BannerAdSize.stickySize(this, adContainer.width)
-        bannerAdView?.setAdSize(adSize)
-
-        bannerAdView?.setBannerAdEventListener(object : BannerAdEventListener {
-            override fun onAdLoaded() {
-                adContainer.removeAllViews()
-                adContainer.addView(bannerAdView)
-            }
-
-            override fun onAdFailedToLoad(error: AdRequestError) {
-                adContainer.visibility = View.GONE
-            }
-
-            override fun onAdClicked() {}
-            override fun onLeftApplication() {}
-            override fun onReturnedToApplication() {}
-            override fun onImpression(impressionData: ImpressionData?) {}
-        })
-
-        bannerAdView?.loadAd(AdRequest.Builder().build())
-    }
-
-    override fun onDestroy() {
-        super.onDestroy()
-        bannerAdView?.destroy()
     }
 
     private fun showAddDialog() {
