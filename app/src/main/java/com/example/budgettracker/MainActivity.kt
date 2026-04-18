@@ -1,31 +1,21 @@
 package com.example.budgettracker
 
-import android.content.ContentValues
 import android.content.SharedPreferences
-import android.content.pm.PackageManager
-import android.graphics.Color
-import android.os.Build
 import android.os.Bundle
-import android.view.Menu
-import android.view.MenuItem
+import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.*
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
-import androidx.appcompat.app.AppCompatDelegate
-import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.floatingactionbutton.FloatingActionButton
-import com.opencsv.CSVWriter
+import com.yandex.mobile.ads.banner.*
 import org.json.JSONArray
 import org.json.JSONObject
-import java.io.File
-import java.io.FileWriter
 import java.text.SimpleDateFormat
 import java.util.*
-import kotlin.collections.ArrayList
 
 class MainActivity : AppCompatActivity() {
 
@@ -35,17 +25,14 @@ class MainActivity : AppCompatActivity() {
     private lateinit var tvBalance: TextView
     private lateinit var tvTotalExpense: TextView
     private lateinit var tvAdvice: TextView
-    private lateinit var etSearch: EditText
-    private lateinit var spinnerSort: Spinner
+    private lateinit var adContainer: FrameLayout
+    private var bannerAdView: BannerAdView? = null
 
-    private val allTransactions = mutableListOf<Transaction>()
-    private var transactions = mutableListOf<Transaction>()
+    private val transactions = mutableListOf<Transaction>()
     private var totalExpense = 0.0
-    private var budget = 30000.0
-    private var currentSort = "date_desc"
+    private val budget = 30000.0
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        applyTheme()
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
@@ -55,12 +42,8 @@ class MainActivity : AppCompatActivity() {
         tvBalance = findViewById(R.id.tvBalance)
         tvTotalExpense = findViewById(R.id.tvTotalExpense)
         tvAdvice = findViewById(R.id.tvAdvice)
-        etSearch = findViewById(R.id.etSearch)
-        spinnerSort = findViewById(R.id.spinnerSort)
+        adContainer = findViewById(R.id.adContainer)
         val btnAdd = findViewById<FloatingActionButton>(R.id.btnAdd)
-
-        setupSortSpinner()
-        setupSearch()
 
         adapter = TransactionAdapter(transactions) { position ->
             removeTransaction(position)
@@ -69,74 +52,45 @@ class MainActivity : AppCompatActivity() {
         recyclerView.adapter = adapter
 
         loadData()
-        applyFiltersAndSort()
         updateUI()
 
         btnAdd.setOnClickListener {
             showAddDialog()
         }
+
+        loadBannerAd()
     }
 
-    private fun setupSortSpinner() {
-        val sortOptions = arrayOf("Сначала новые", "Сначала старые", "По сумме (возр.)", "По сумме (убыв.)")
-        val adapter = ArrayAdapter(this, android.R.layout.simple_spinner_item, sortOptions)
-        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
-        spinnerSort.adapter = adapter
-        spinnerSort.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
-            override fun onItemSelected(parent: AdapterView<*>, view: View?, position: Int, id: Long) {
-                currentSort = when (position) {
-                    0 -> "date_desc"
-                    1 -> "date_asc"
-                    2 -> "amount_asc"
-                    3 -> "amount_desc"
-                    else -> "date_desc"
-                }
-                applyFiltersAndSort()
-            }
-            override fun onNothingSelected(parent: AdapterView<*>) {}
-        }
-    }
+    private fun loadBannerAd() {
+        val adUnitId = "R-M-19097965-1"  // твой ID
+        bannerAdView = BannerAdView(this)
+        bannerAdView?.setAdUnitId(adUnitId)
 
-    private fun setupSearch() {
-        etSearch.addTextChangedListener(object : android.text.TextWatcher {
-            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
-            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
-                applyFiltersAndSort()
+        val adSize = BannerAdSize.stickySize(this, adContainer.width)
+        bannerAdView?.setAdSize(adSize)
+
+        bannerAdView?.setBannerAdEventListener(object : BannerAdEventListener {
+            override fun onAdLoaded() {
+                adContainer.removeAllViews()
+                adContainer.addView(bannerAdView)
             }
-            override fun afterTextChanged(s: android.text.Editable?) {}
+
+            override fun onAdFailedToLoad(error: AdRequestError) {
+                adContainer.visibility = View.GONE
+            }
+
+            override fun onAdClicked() {}
+            override fun onLeftApplication() {}
+            override fun onReturnedToApplication() {}
+            override fun onImpression(impressionData: ImpressionData?) {}
         })
+
+        bannerAdView?.loadAd(AdRequest.Builder().build())
     }
 
-    private fun applyFiltersAndSort() {
-        val query = etSearch.text.toString().trim().lowercase()
-        val filtered = if (query.isEmpty()) {
-            allTransactions.toList()
-        } else {
-            allTransactions.filter {
-                it.shop.lowercase().contains(query) ||
-                it.category.lowercase().contains(query) ||
-                it.date.contains(query)
-            }
-        }
-        transactions.clear()
-        transactions.addAll(sortTransactions(filtered))
-        adapter.notifyDataSetChanged()
-        updateUI()
-    }
-
-    private fun sortTransactions(list: List<Transaction>): List<Transaction> {
-        return when (currentSort) {
-            "date_asc" -> list.sortedBy { parseDate(it.date) }
-            "amount_asc" -> list.sortedBy { it.amount }
-            "amount_desc" -> list.sortedByDescending { it.amount }
-            else -> list.sortedByDescending { parseDate(it.date) }
-        }
-    }
-
-    private fun parseDate(dateStr: String): Long {
-        return try {
-            SimpleDateFormat("dd.MM.yyyy", Locale.getDefault()).parse(dateStr)?.time ?: 0
-        } catch (e: Exception) { 0 }
+    override fun onDestroy() {
+        super.onDestroy()
+        bannerAdView?.destroy()
     }
 
     private fun showAddDialog() {
@@ -145,21 +99,19 @@ class MainActivity : AppCompatActivity() {
         val etShop = dialogView.findViewById<EditText>(R.id.etShop)
         val etCategory = dialogView.findViewById<EditText>(R.id.etCategory)
         val etDate = dialogView.findViewById<EditText>(R.id.etDate)
-        val rgType = dialogView.findViewById<RadioGroup>(R.id.rgType)
 
         etDate.setText(SimpleDateFormat("dd.MM.yyyy", Locale.getDefault()).format(Date()))
 
         AlertDialog.Builder(this)
-            .setTitle("Новая операция")
+            .setTitle("Новая трата")
             .setView(dialogView)
             .setPositiveButton("Добавить") { _, _ ->
                 val amount = etAmount.text.toString().toDoubleOrNull()
                 val shop = etShop.text.toString().trim()
                 val category = etCategory.text.toString().trim()
                 val date = etDate.text.toString()
-                val type = if (rgType.checkedRadioButtonId == R.id.rbIncome) "income" else "expense"
                 if (amount != null && amount > 0 && shop.isNotEmpty() && category.isNotEmpty()) {
-                    addTransaction(amount, shop, category, date, type)
+                    addTransaction(amount, shop, category, date)
                 } else {
                     Toast.makeText(this, "Заполните все поля", Toast.LENGTH_SHORT).show()
                 }
@@ -168,21 +120,21 @@ class MainActivity : AppCompatActivity() {
             .show()
     }
 
-    private fun addTransaction(amount: Double, shop: String, category: String, date: String, type: String) {
-        val transaction = Transaction(amount, shop, category, date, type)
-        allTransactions.add(0, transaction)
-        if (type == "expense") totalExpense += amount
+    private fun addTransaction(amount: Double, shop: String, category: String, date: String) {
+        val transaction = Transaction(amount, shop, category, date)
+        transactions.add(0, transaction)
+        totalExpense += amount
         saveData()
-        applyFiltersAndSort()
+        adapter.notifyItemInserted(0)
         updateUI()
     }
 
     private fun removeTransaction(position: Int) {
         val transaction = transactions[position]
-        if (transaction.type == "expense") totalExpense -= transaction.amount
-        allTransactions.remove(transaction)
+        totalExpense -= transaction.amount
+        transactions.removeAt(position)
         saveData()
-        applyFiltersAndSort()
+        adapter.notifyItemRemoved(position)
         updateUI()
     }
 
@@ -199,125 +151,38 @@ class MainActivity : AppCompatActivity() {
         tvAdvice.text = advice
     }
 
-    private fun exportToCSV() {
-        try {
-            val file = File(getExternalFilesDir(null), "transactions_${System.currentTimeMillis()}.csv")
-            FileWriter(file).use { writer ->
-                CSVWriter(writer).use { csvWriter ->
-                    csvWriter.writeNext(arrayOf("Тип", "Сумма", "Магазин", "Категория", "Дата"))
-                    allTransactions.forEach {
-                        csvWriter.writeNext(arrayOf(
-                            if (it.type == "income") "Доход" else "Расход",
-                            it.amount.toString(),
-                            it.shop,
-                            it.category,
-                            it.date
-                        ))
-                    }
-                }
-            }
-            Toast.makeText(this, "CSV сохранён: ${file.absolutePath}", Toast.LENGTH_LONG).show()
-        } catch (e: Exception) {
-            Toast.makeText(this, "Ошибка экспорта", Toast.LENGTH_SHORT).show()
-        }
-    }
-
-    override fun onCreateOptionsMenu(menu: Menu?): Boolean {
-        menuInflater.inflate(R.menu.menu_main, menu)
-        return true
-    }
-
-    override fun onOptionsItemSelected(item: MenuItem): Boolean {
-        return when (item.itemId) {
-            R.id.action_budget -> {
-                showBudgetDialog()
-                true
-            }
-            R.id.action_export -> {
-                exportToCSV()
-                true
-            }
-            R.id.action_theme -> {
-                toggleTheme()
-                true
-            }
-            else -> super.onOptionsItemSelected(item)
-        }
-    }
-
-    private fun showBudgetDialog() {
-        val dialogView = layoutInflater.inflate(R.layout.dialog_budget, null)
-        val etBudget = dialogView.findViewById<EditText>(R.id.etBudget)
-        etBudget.setText(budget.toInt().toString())
-        AlertDialog.Builder(this)
-            .setTitle("Настройка бюджета")
-            .setView(dialogView)
-            .setPositiveButton("Сохранить") { _, _ ->
-                val newBudget = etBudget.text.toString().toDoubleOrNull()
-                if (newBudget != null && newBudget > 0) {
-                    budget = newBudget
-                    prefs.edit().putFloat("budget", budget.toFloat()).apply()
-                    updateUI()
-                } else {
-                    Toast.makeText(this, "Некорректная сумма", Toast.LENGTH_SHORT).show()
-                }
-            }
-            .setNegativeButton("Отмена", null)
-            .show()
-    }
-
-    private fun toggleTheme() {
-        val isDark = prefs.getBoolean("dark_theme", false)
-        prefs.edit().putBoolean("dark_theme", !isDark).apply()
-        applyTheme()
-        recreate()
-    }
-
-    private fun applyTheme() {
-        val isDark = prefs.getBoolean("dark_theme", false)
-        if (isDark) {
-            AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_YES)
-        } else {
-            AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_NO)
-        }
-    }
-
     private fun saveData() {
         val jsonArray = JSONArray()
-        allTransactions.forEach {
+        transactions.forEach {
             val obj = JSONObject()
             obj.put("amount", it.amount)
             obj.put("shop", it.shop)
             obj.put("category", it.category)
             obj.put("date", it.date)
-            obj.put("type", it.type)
             jsonArray.put(obj)
         }
         prefs.edit().putString("transactions", jsonArray.toString()).apply()
         prefs.edit().putFloat("totalExpense", totalExpense.toFloat()).apply()
-        prefs.edit().putFloat("budget", budget.toFloat()).apply()
     }
 
     private fun loadData() {
         val jsonStr = prefs.getString("transactions", "[]") ?: "[]"
         val jsonArray = JSONArray(jsonStr)
-        allTransactions.clear()
+        transactions.clear()
         for (i in 0 until jsonArray.length()) {
             val obj = jsonArray.getJSONObject(i)
             val transaction = Transaction(
                 obj.getDouble("amount"),
                 obj.getString("shop"),
                 obj.getString("category"),
-                obj.getString("date"),
-                obj.getString("type")
+                obj.getString("date")
             )
-            allTransactions.add(transaction)
+            transactions.add(transaction)
         }
         totalExpense = prefs.getFloat("totalExpense", 0f).toDouble()
-        budget = prefs.getFloat("budget", 30000f).toDouble()
     }
 
-    data class Transaction(val amount: Double, val shop: String, val category: String, val date: String, val type: String)
+    data class Transaction(val amount: Double, val shop: String, val category: String, val date: String)
 
     inner class TransactionAdapter(
         private val items: List<Transaction>,
@@ -333,9 +198,7 @@ class MainActivity : AppCompatActivity() {
             val item = items[position]
             holder.tvShop.text = item.shop
             holder.tvCategory.text = item.category
-            val prefix = if (item.type == "income") "+" else "-"
-            holder.tvAmount.text = String.format("%s%.2f ₽", prefix, item.amount)
-            holder.tvAmount.setTextColor(if (item.type == "income") Color.parseColor("#4CAF50") else Color.parseColor("#F44336"))
+            holder.tvAmount.text = String.format("%.2f ₽", item.amount)
             holder.tvDate.text = item.date
             holder.btnDelete.setOnClickListener { onDelete(position) }
         }
