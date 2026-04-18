@@ -26,8 +26,9 @@ class MainActivity : AppCompatActivity() {
     private lateinit var tvAdvice: TextView
 
     private val transactions = mutableListOf<Transaction>()
-    private var totalExpense = 0.0
-    private var budget = 0.0      // теперь бюджет не фиксированный, а берется из настроек
+    private var totalExpense = 0.0   // сумма расходов
+    private var totalIncome = 0.0    // сумма доходов
+    private var budget = 0.0
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -71,7 +72,7 @@ class MainActivity : AppCompatActivity() {
         val dialog = AlertDialog.Builder(this)
             .setTitle("Введите ваш бюджет на месяц")
             .setView(dialogView)
-            .setCancelable(false) // нельзя закрыть назад или касанием вне окна
+            .setCancelable(false)
             .create()
 
         btnSave.setOnClickListener {
@@ -101,19 +102,24 @@ class MainActivity : AppCompatActivity() {
         val etShop = dialogView.findViewById<EditText>(R.id.etShop)
         val etCategory = dialogView.findViewById<EditText>(R.id.etCategory)
         val etDate = dialogView.findViewById<EditText>(R.id.etDate)
+        val radioGroupType = dialogView.findViewById<RadioGroup>(R.id.rgType)
+        val rbExpense = dialogView.findViewById<RadioButton>(R.id.rbExpense)
+        val rbIncome = dialogView.findViewById<RadioButton>(R.id.rbIncome)
 
         etDate.setText(SimpleDateFormat("dd.MM.yyyy", Locale.getDefault()).format(Date()))
 
         AlertDialog.Builder(this)
-            .setTitle("Новая трата")
+            .setTitle("Новая операция")
             .setView(dialogView)
             .setPositiveButton("Добавить") { _, _ ->
                 val amount = etAmount.text.toString().toDoubleOrNull()
                 val shop = etShop.text.toString().trim()
                 val category = etCategory.text.toString().trim()
                 val date = etDate.text.toString()
+                val type = if (rbIncome.isChecked) "income" else "expense"
+
                 if (amount != null && amount > 0 && shop.isNotEmpty() && category.isNotEmpty()) {
-                    addTransaction(amount, shop, category, date)
+                    addTransaction(amount, shop, category, date, type)
                 } else {
                     Toast.makeText(this, "Заполните все поля", Toast.LENGTH_SHORT).show()
                 }
@@ -122,10 +128,14 @@ class MainActivity : AppCompatActivity() {
             .show()
     }
 
-    private fun addTransaction(amount: Double, shop: String, category: String, date: String) {
-        val transaction = Transaction(amount, shop, category, date)
+    private fun addTransaction(amount: Double, shop: String, category: String, date: String, type: String) {
+        val transaction = Transaction(amount, shop, category, date, type)
         transactions.add(0, transaction)
-        totalExpense += amount
+        if (type == "expense") {
+            totalExpense += amount
+        } else {
+            totalIncome += amount
+        }
         saveData()
         adapter.notifyItemInserted(0)
         updateUI()
@@ -133,7 +143,11 @@ class MainActivity : AppCompatActivity() {
 
     private fun removeTransaction(position: Int) {
         val transaction = transactions[position]
-        totalExpense -= transaction.amount
+        if (transaction.type == "expense") {
+            totalExpense -= transaction.amount
+        } else {
+            totalIncome -= transaction.amount
+        }
         transactions.removeAt(position)
         saveData()
         adapter.notifyItemRemoved(position)
@@ -141,9 +155,9 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun updateUI() {
-        val balance = budget - totalExpense
+        val balance = budget - totalExpense + totalIncome
         tvBalance.text = String.format("%.2f ₽", balance)
-        tvTotalExpense.text = String.format("Расходы: %.2f ₽", totalExpense)
+        tvTotalExpense.text = String.format("Расходы: %.2f ₽ | Доходы: %.2f ₽", totalExpense, totalIncome)
 
         val advice = when {
             balance < 0 -> "⚠️ Вы превысили бюджет на ${String.format("%.2f", -balance)} ₽"
@@ -161,10 +175,12 @@ class MainActivity : AppCompatActivity() {
             obj.put("shop", it.shop)
             obj.put("category", it.category)
             obj.put("date", it.date)
+            obj.put("type", it.type)
             jsonArray.put(obj)
         }
         prefs.edit().putString("transactions", jsonArray.toString()).apply()
         prefs.edit().putFloat("totalExpense", totalExpense.toFloat()).apply()
+        prefs.edit().putFloat("totalIncome", totalIncome.toFloat()).apply()
     }
 
     private fun loadData() {
@@ -177,15 +193,22 @@ class MainActivity : AppCompatActivity() {
                 obj.getDouble("amount"),
                 obj.getString("shop"),
                 obj.getString("category"),
-                obj.getString("date")
+                obj.getString("date"),
+                obj.getString("type")
             )
             transactions.add(transaction)
         }
         totalExpense = prefs.getFloat("totalExpense", 0f).toDouble()
-        // Бюджет загружается отдельно в onCreate
+        totalIncome = prefs.getFloat("totalIncome", 0f).toDouble()
     }
 
-    data class Transaction(val amount: Double, val shop: String, val category: String, val date: String)
+    data class Transaction(
+        val amount: Double,
+        val shop: String,
+        val category: String,
+        val date: String,
+        val type: String  // "income" или "expense"
+    )
 
     inner class TransactionAdapter(
         private val items: List<Transaction>,
@@ -204,6 +227,13 @@ class MainActivity : AppCompatActivity() {
             holder.tvAmount.text = String.format("%.2f ₽", item.amount)
             holder.tvDate.text = item.date
             holder.btnDelete.setOnClickListener { onDelete(position) }
+
+            // Цвет в зависимости от типа
+            if (item.type == "income") {
+                holder.tvAmount.setTextColor(android.graphics.Color.parseColor("#4CAF50"))
+            } else {
+                holder.tvAmount.setTextColor(android.graphics.Color.parseColor("#F44336"))
+            }
         }
 
         override fun getItemCount() = items.size
