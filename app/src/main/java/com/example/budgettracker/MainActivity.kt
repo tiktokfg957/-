@@ -27,7 +27,7 @@ class MainActivity : AppCompatActivity() {
 
     private val transactions = mutableListOf<Transaction>()
     private var totalExpense = 0.0
-    private val budget = 30000.0
+    private var budget = 0.0      // теперь бюджет не фиксированный, а берется из настроек
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -48,11 +48,51 @@ class MainActivity : AppCompatActivity() {
         recyclerView.adapter = adapter
 
         loadData()
-        updateUI()
+
+        // Проверяем, установлен ли бюджет
+        val budgetSet = prefs.getBoolean("budget_set", false)
+        if (!budgetSet) {
+            showBudgetDialog()
+        } else {
+            budget = prefs.getFloat("budget", 30000f).toDouble()
+            updateUI()
+        }
 
         btnAdd.setOnClickListener {
             showAddDialog()
         }
+    }
+
+    private fun showBudgetDialog() {
+        val dialogView = layoutInflater.inflate(R.layout.dialog_budget, null)
+        val etBudget = dialogView.findViewById<EditText>(R.id.etBudget)
+        val btnSave = dialogView.findViewById<Button>(R.id.btnSaveBudget)
+
+        val dialog = AlertDialog.Builder(this)
+            .setTitle("Введите ваш бюджет на месяц")
+            .setView(dialogView)
+            .setCancelable(false) // нельзя закрыть назад или касанием вне окна
+            .create()
+
+        btnSave.setOnClickListener {
+            val budgetStr = etBudget.text.toString().trim()
+            if (budgetStr.isNotEmpty()) {
+                val newBudget = budgetStr.toDoubleOrNull()
+                if (newBudget != null && newBudget > 0) {
+                    budget = newBudget
+                    prefs.edit().putFloat("budget", budget.toFloat()).apply()
+                    prefs.edit().putBoolean("budget_set", true).apply()
+                    updateUI()
+                    dialog.dismiss()
+                } else {
+                    Toast.makeText(this, "Введите корректную сумму", Toast.LENGTH_SHORT).show()
+                }
+            } else {
+                Toast.makeText(this, "Поле не может быть пустым", Toast.LENGTH_SHORT).show()
+            }
+        }
+
+        dialog.show()
     }
 
     private fun showAddDialog() {
@@ -142,6 +182,7 @@ class MainActivity : AppCompatActivity() {
             transactions.add(transaction)
         }
         totalExpense = prefs.getFloat("totalExpense", 0f).toDouble()
+        // Бюджет загружается отдельно в onCreate
     }
 
     data class Transaction(val amount: Double, val shop: String, val category: String, val date: String)
