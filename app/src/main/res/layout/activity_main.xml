@@ -15,6 +15,7 @@
         android:textStyle="bold"
         android:layout_marginBottom="16dp" />
 
+    <!-- Карточка баланса -->
     <androidx.cardview.widget.CardView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -50,8 +51,8 @@
         android:id="@+id/tvTotalExpense"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Расходы: 0 ₽"
-        android:textSize="16sp"
+        android:text="Расходы: 0 ₽ | Доходы: 0 ₽"
+        android:textSize="14sp"
         android:layout_marginBottom="8dp" />
 
     <TextView
@@ -68,6 +69,44 @@
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1" />
+
+    <!-- Три кнопки внизу -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:layout_marginTop="16dp"
+        android:gravity="center">
+
+        <Button
+            android:id="@+id/btnCredits"
+            style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="Кредиты"
+            android:layout_marginEnd="4dp" />
+
+        <Button
+            android:id="@+id/btnSettings"
+            style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="Настройки"
+            android:layout_marginStart="4dp"
+            android:layout_marginEnd="4dp" />
+
+        <Button
+            android:id="@+id/btnSocial"
+            style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="Соцсети"
+            android:layout_marginStart="4dp" />
+
+    </LinearLayout>
 
     <com.google.android.material.floatingactionbutton.FloatingActionButton
         android:id="@+id/btnAdd"
